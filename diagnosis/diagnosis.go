@@ -2,45 +2,36 @@ package diagnosis
 
 import (
 	"context"
-	"esdoctor/client"
-	"esdoctor/version"
-	"io"
+	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
+	"esdoctor/client"
+
 	log "github.com/sirupsen/logrus"
 )
 
-type Option func(*options)
-
-type options struct {
+func Diagnose(ctx context.Context, client client.Versioned, options ...Option) (*Diagnostics, error) {
+	diagnostics := NewDiagnostics(client, options...)
+	return diagnostics, diagnostics.Run(ctx)
 }
 
-func newOptions(optionFns ...Option) options {
-	options := options{}
-	for _, fn := range optionFns {
-		fn(&options)
+func NewDiagnostics(client client.Versioned, options ...Option) *Diagnostics {
+	return &Diagnostics{
+		config: newConfig(options...),
+		client: client,
 	}
-	return options
 }
 
-func Diagnose(ctx context.Context, client client.Versioned, optionFns ...Option) (Diagnostics, error) {
-	options := newOptions(optionFns...)
-	log.Debugf("Running diagnostics on endpoint %s with the following options: %+v", client.Endpoint(), options)
-
-	version, err := version.Discover(ctx, client)
-	if err != nil {
-		return Diagnostics{}, err
+func (d *Diagnostics) Run(ctx context.Context) error {
+	log.Infof("Running diagnostics on endpoint %s with the following config: %+v", d.client.Endpoint(), d.config)
+	if err := d.load(ctx); err != nil {
+		return fmt.Errorf("failed to load data for diagnistics: %w", err)
 	}
-
-	return Diagnostics{
-		Version: version,
-	}, nil
+	if err := d.process(); err != nil {
+		return fmt.Errorf("failed to process loaded data: %w", err)
+	}
+	return nil
 }
 
-type Diagnostics struct {
-	Version version.ESVersion
-}
-
-func (d Diagnostics) Print(writer io.Writer) {
-	spew.Fprintf(writer, "%+v\n", d)
+func (d *Diagnostics) process() error {
+	return nil
 }

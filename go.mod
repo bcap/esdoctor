@@ -12,6 +12,7 @@ require (
 	github.com/elastic/go-elasticsearch/v6 v6.8.11-0.20200928071101-eea2429a81ed
 	github.com/elastic/go-elasticsearch/v7 v7.5.1-0.20210823155509-845c8efe54a7
 	github.com/elastic/go-elasticsearch/v8 v8.0.0-20210823151005-3b1f3aef208c
+	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect

@@ -3,12 +3,13 @@ package version
 import (
 	"context"
 	"encoding/json"
-	"esdoctor/client"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"esdoctor/client"
 )
 
 // ES uses semantic versioning https://semver.org/
@@ -16,6 +17,14 @@ type ESVersion struct {
 	Major int
 	Minor int
 	Patch int
+}
+
+func (v ESVersion) Set() bool {
+	return v.Major != 0 || v.Minor != 0 || v.Patch != 0
+}
+
+func (v ESVersion) String() string {
+	return fmt.Sprintf("%d.%d.%d", v.Major, v.Major, v.Patch)
 }
 
 func Discover(ctx context.Context, client client.Versioned) (ESVersion, error) {
@@ -27,7 +36,7 @@ func Discover(ctx context.Context, client client.Versioned) (ESVersion, error) {
 	if err != nil {
 		return errResult(err)
 	}
-	resp, err := client.V8.Transport.Perform(req)
+	resp, err := client.Do(req)
 
 	if err != nil {
 		return errResult(err)
@@ -48,7 +57,11 @@ func Discover(ctx context.Context, client client.Versioned) (ESVersion, error) {
 		return errResult(err)
 	}
 
-	return Parse(decoded.Version.Number)
+	result, err := Parse(decoded.Version.Number)
+	if err != nil {
+		return errResult(err)
+	}
+	return result, nil
 }
 
 func Parse(version string) (ESVersion, error) {

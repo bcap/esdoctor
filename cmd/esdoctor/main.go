@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"esdoctor/client"
 	"esdoctor/diagnosis"
@@ -27,7 +30,21 @@ func Command() *cobra.Command {
 		SilenceErrors: true,
 	}
 
+	var format string
 	var verbosity int
+
+	availableFormats := []string{
+		diagnosis.FormatDumpJSON,
+		diagnosis.FormatDumpSpew,
+	}
+	sort.Strings(availableFormats)
+	cmd.PersistentFlags().StringVarP(
+		&format, "format", "f", diagnosis.FormatDumpJSON,
+		fmt.Sprintf(
+			"Print results using this format. Available formats: %s",
+			strings.Join(availableFormats, ", "),
+		),
+	)
 
 	cmd.PersistentFlags().CountVarP(
 		&verbosity, "verbosity", "v",
@@ -36,17 +53,31 @@ func Command() *cobra.Command {
 			"See also --quiet",
 	)
 
+	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		validFormat := false
+		for _, availableFormat := range availableFormats {
+			if availableFormat == format {
+				validFormat = true
+				break
+			}
+		}
+		if !validFormat {
+			return fmt.Errorf("unknown print format %q", format)
+		}
+		return nil
+	}
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		setupLogging(verbosity)
 		endpoint := args[0]
-		return run(cmd.Context(), endpoint)
+		return run(cmd.Context(), endpoint, format)
 	}
 
 	return &cmd
 }
 
-func run(ctx context.Context, endpoint string) error {
+func run(ctx context.Context, endpoint string, printFormat string) error {
 	client, err := client.New(endpoint)
 	if err != nil {
 		return err
@@ -57,7 +88,7 @@ func run(ctx context.Context, endpoint string) error {
 		return err
 	}
 
-	diagnostics.Print(os.Stdout)
+	diagnostics.Print(os.Stdout, diagnosis.WithPrintFormat(printFormat))
 	return nil
 }
 
