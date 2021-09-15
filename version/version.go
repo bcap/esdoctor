@@ -14,9 +14,9 @@ import (
 
 // ES uses semantic versioning https://semver.org/
 type ESVersion struct {
-	Major int
-	Minor int
-	Patch int
+	Major int `json:"major"`
+	Minor int `json:"minor"`
+	Patch int `json:"patch"`
 }
 
 func (v ESVersion) Set() bool {
@@ -25,6 +25,22 @@ func (v ESVersion) Set() bool {
 
 func (v ESVersion) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Major, v.Patch)
+}
+
+func (v ESVersion) MarshalJSON() ([]byte, error) {
+	// The alias type is used here to copy all of the ESVersion data but
+	// have no associated methods. This is necessary or else this MarshalJSON
+	// method will be called in json.Marshal, causing an infinite recursion
+	type Alias ESVersion
+
+	withExtraFields := struct {
+		Alias
+		String string `json:"human"`
+	}{
+		Alias:  Alias(v),
+		String: fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch),
+	}
+	return json.Marshal(withExtraFields)
 }
 
 func Discover(ctx context.Context, client client.Versioned) (ESVersion, error) {
